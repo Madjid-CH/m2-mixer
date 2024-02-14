@@ -1,5 +1,5 @@
 einops
-gensim
+# gensim
 h5py
 matplotlib
 numpy
@@ -11,6 +11,7 @@ torch
 torchmetrics
 tqdm
 wandb
+tensorboard
 torchtext
 torchvision
 scikit-learn

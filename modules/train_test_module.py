@@ -88,13 +88,16 @@ class AbstractTrainTestModule(pl.LightningModule, abc.ABC):
         return results
 
     def on_train_epoch_end(self):
+        self.log_training_metrics()
+        self.training_step_outputs.clear()
+
+    def log_training_metrics(self):
         if self.train_scores is not None:
             for metric in self.train_scores:
                 train_score = self.train_scores[metric].compute()
                 wandb.log({f'train_{metric}': train_score})
                 self.log(f'train_{metric}', train_score, prog_bar=True, logger=True)
         wandb.log({'train_loss': np.mean([output['loss'].cpu().item() for output in self.training_step_outputs])})
-        self.training_step_outputs.clear()
 
     def validation_step(self, batch, batch_idx):
         if self.val_scores is not None:
@@ -109,6 +112,10 @@ class AbstractTrainTestModule(pl.LightningModule, abc.ABC):
         return results
 
     def on_validation_epoch_end(self):
+        self.log_validation_metrics()
+        self.validation_step_outputs.clear()
+
+    def log_validation_metrics(self):
         if self.val_scores is not None:
             for metric in self.val_scores:
                 val_score = self.val_scores[metric].compute()
@@ -136,7 +143,6 @@ class AbstractTrainTestModule(pl.LightningModule, abc.ABC):
                 preds=preds.long().cpu().numpy(),
                 class_names=range(max(preds.long().max().item(), labs.max().item()) + 1),
             )})
-        self.validation_step_outputs.clear()
 
     def test_step(self, batch, batch_idx):
         self.log_n_parameters()

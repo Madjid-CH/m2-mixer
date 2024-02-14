@@ -2,7 +2,7 @@ import json
 import os
 from typing import List
 
-import gensim
+# import gensim
 import numpy as np
 from PIL import Image
 from omegaconf import DictConfig

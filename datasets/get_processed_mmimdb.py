@@ -87,7 +87,7 @@ class RandomModalityMuting(object):
 
 class MM_IMDB(Dataset):
 
-    def __init__(self, root_dir='',  # /home/juanma/Documents/Data/MM_IMDB/mmimdb_np
+    def __init__(self, root_dir='',
                  transform=None,
                  stage='train',
                  feat_dim=100,

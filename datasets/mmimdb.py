@@ -18,6 +18,9 @@ class MMIMDBDataModule(pl.LightningDataModule):
     def __init__(self, data_dir: str, batch_size: int, num_workers: int, vocab: DictConfig, projection: DictConfig,
                  max_seq_len: int, **kwargs):
         super().__init__(**kwargs)
+        self.padded_features = None
+        self.eval_set = None
+        self.train_set = None
         self.max_seq_len = max_seq_len
         self.data_dir = data_dir
         self.batch_size = batch_size
@@ -104,19 +107,19 @@ class MMIMDBDataset(Dataset):
 
     def __getitem__(self, idx: int) -> dict:
 
-        imagepath = os.path.join(self.root_dir, self.stage, 'images', f'image_{idx}.jpeg')
-        labelpath = os.path.join(self.root_dir, self.stage, 'labels', f'label_{idx}.npy')
-        textpath = os.path.join(self.root_dir, self.stage, 'text', f'text_{idx}.txt')
+        image_path = os.path.join(self.root_dir, self.stage, 'images', f'image_{idx}.jpeg')
+        label_path = os.path.join(self.root_dir, self.stage, 'labels', f'label_{idx}.npy')
+        text_path = os.path.join(self.root_dir, self.stage, 'text', f'text_{idx}.txt')
 
-        # image = np.array(Image.open(imagepath).convert('RGB')).T
-        image = Image.open(imagepath).convert('RGB')
-        label = np.load(labelpath)
-        with open(textpath, 'r') as f:
+        # image = np.array(Image.open(image_path).convert('RGB')).T
+        image = Image.open(image_path).convert('RGB')
+        label = np.load(label_path)
+        with open(text_path, 'r') as f:
             text = f.read()
 
-        textlen = text.count(' ') + 1
+        text_length = text.count(' ') + 1
 
-        sample = {'image': image, 'text': text, 'label': label, 'textlen': textlen}
+        sample = {'image': image, 'text': text, 'label': label, 'textlen': text_length}
 
         if self.transform:
             for m in self.transform:
@@ -140,8 +143,8 @@ class MMIMDBDataset(Dataset):
         for index, token in zip(encoded.words, encoded.tokens):
             tokens[index].append(token)
         features = self.projection(tokens)
-        padded_featrues = np.pad(features, ((0, self.max_seq_len - len(words)), (0, 0)))
-        return padded_featrues
+        padded_features = np.pad(features, ((0, self.max_seq_len - len(words)), (0, 0)))
+        return padded_features
 
     def normalize(self, text: str) -> str:
         return text.replace('<br />', ' ')

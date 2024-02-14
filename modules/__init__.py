@@ -10,8 +10,8 @@ from .recurrent import *
 
 
 def get_block_by_name(**kwargs):
-    thismodule = sys.modules[__name__]
-    block = getattr(thismodule, kwargs['block_type'])
+    this_module = sys.modules[__name__]
+    block = getattr(this_module, kwargs['block_type'])
     return block(**kwargs)
 
 
