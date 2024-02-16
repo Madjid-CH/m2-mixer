@@ -159,6 +159,10 @@ class AbstractTrainTestModule(pl.LightningModule, abc.ABC):
 
 
     def on_test_epoch_end(self):
+        self.log_test_matrics()
+        self.test_step_outputs.clear()
+
+    def log_test_matrics(self):
         if self.test_scores is not None:
             for metric in self.test_scores:
                 test_score = self.test_scores[metric].compute()
@@ -173,7 +177,6 @@ class AbstractTrainTestModule(pl.LightningModule, abc.ABC):
                 preds=preds.long().cpu().numpy(),
                 class_names=range(max(preds.max().item(), labs.max().item()) + 1),
             )})
-        self.test_step_outputs.clear()
 
     def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
         results = self.shared_step(batch)

@@ -200,7 +200,7 @@ class MMIMDBMixerMultiLoss(AbstractTrainTestModule):
         return [train_scores, val_scores, test_scores]
 
     def on_test_epoch_end(self, save_preds=False):
-        super().test_epoch_end(self.test_step_outputs, save_preds)
+        super().log_test_matrics()
         preds = torch.cat([x['preds'] for x in self.test_step_outputs])
         preds_image = torch.cat([x['preds_image'] for x in self.test_step_outputs])
         preds_text = torch.cat([x['preds_text'] for x in self.test_step_outputs])
