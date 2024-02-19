@@ -1,13 +1,14 @@
 import os
 from typing import List
 
+import h5py
 import numpy as np
+import pytorch_lightning as pl
+import torchvision.transforms as T
 from PIL import Image
 from omegaconf import DictConfig
 from tokenizers.implementations import BertWordPieceTokenizer
 from torch.utils.data import Dataset, DataLoader
-import pytorch_lightning as pl
-import torchvision.transforms as T
 
 from datasets.transforms import RuinModality
 from utils.projection import Projection
@@ -19,8 +20,9 @@ class MMIMDBDataModule(pl.LightningDataModule):
                  max_seq_len: int, **kwargs):
         super().__init__(**kwargs)
         self.padded_features = None
-        self.eval_set = None
         self.train_set = None
+        self.eval_set = None
+        self.test_set = None
         self.max_seq_len = max_seq_len
         self.data_dir = data_dir
         self.batch_size = batch_size
@@ -75,25 +77,41 @@ class MMIMDBDataModule(pl.LightningDataModule):
                           num_workers=self.num_workers, persistent_workers=True)
 
 
+def _get_data_len(stage):
+    if stage == 'train':
+        return 15552
+    elif stage == 'test':
+        return 7799
+    elif stage == 'dev':
+        return 2608
+
+
+def _split_offset(stage):
+    if stage == 'train':
+        return 0
+    elif stage == 'dev':
+        return 15552
+    else:
+        return 18160
+
+
 class MMIMDBDataset(Dataset):
 
     def __init__(self, root_dir, tokenizer, projection, max_seq_len, feat_dim=100, stage='train', transform=None):
         """
         Args:
-            root_dir (string): Directory where data is.
+            root_dir (string): Path to where data is.
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
 
-        if stage == 'train':
-            self.len_data = 15552
-        elif stage == 'test':
-            self.len_data = 7799
-        elif stage == 'dev':
-            self.len_data = 2608
+        super().__init__()
+        self.root_dir = root_dir
+        self.images, self.text_sequences, self.labels = self._setup_data()
+
+        self.len_data = _get_data_len(stage)
 
         self.transform = transform
-        self.root_dir = root_dir
         self.stage = stage
         self.tokenizer = tokenizer
         self.projection = projection
@@ -106,16 +124,10 @@ class MMIMDBDataset(Dataset):
         return self.len_data
 
     def __getitem__(self, idx: int) -> dict:
-
-        image_path = os.path.join(self.root_dir, self.stage, 'images', f'image_{idx}.jpeg')
-        label_path = os.path.join(self.root_dir, self.stage, 'labels', f'label_{idx}.npy')
-        text_path = os.path.join(self.root_dir, self.stage, 'text', f'text_{idx}.txt')
-
-        # image = np.array(Image.open(image_path).convert('RGB')).T
-        image = Image.open(image_path).convert('RGB')
-        label = np.load(label_path)
-        with open(text_path, 'r') as f:
-            text = f.read()
+        idx += _split_offset(self.stage)
+        image = Image.fromarray(self._get_image_from_dataset(idx)).convert('RGB')
+        label = self.labels[idx]
+        text = self.generate_text_from_sequence(self.text_sequences[idx])
 
         text_length = text.count(' ') + 1
 
@@ -137,6 +149,9 @@ class MMIMDBDataset(Dataset):
 
         return sample
 
+    def _get_image_from_dataset(self, idx):
+        return self.images[idx].transpose(1, 2, 0).astype(np.uint8)
+
     def project_features(self, words: List[str]) -> np.ndarray:
         encoded = self.tokenizer.encode(words, is_pretokenized=True, add_special_tokens=False)
         tokens = [[] for _ in range(len(words))]
@@ -152,3 +167,15 @@ class MMIMDBDataset(Dataset):
     def get_words(self, fields: List[str]) -> List[str]:
         return [w[0] for w in self.tokenizer.pre_tokenizer.pre_tokenize_str(self.normalize(fields[0]))][
                :self.max_seq_len]
+
+    def generate_text_from_sequence(self, sequence):
+        data = np.load(f"{self.root_dir}/metadata.npy", allow_pickle=True).item()
+        lookup = data['ix_to_word']
+        return ' '.join([lookup[word] for word in sequence])
+
+    def _setup_data(self):
+        h5_file = h5py.File(f"{self.root_dir}/multimodal_imdb.hdf5", 'r')
+        images = h5_file['images'][:]
+        labels = h5_file['genres'][:]
+        texts = h5_file['sequences'][:]
+        return images, texts, labels

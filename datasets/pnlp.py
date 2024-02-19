@@ -120,8 +120,8 @@ class ImdbDataset(PnlpMixerDataset):
         return text.replace('<br />', ' ')
 
     def get_words(self, fields: List[str]) -> List[str]:
-        return [w[0] for w in self.tokenizer.pre_tokenizer.pre_tokenize_str(self.normalize(fields[0]))][
-               :self.max_seq_len]
+        return [w[0] for w in
+                self.tokenizer.pre_tokenizer.pre_tokenize_str(self.normalize(fields[0]))][:self.max_seq_len]
 
     def compute_labels(self, fields: List[str]) -> np.ndarray:
         return np.array(self.label_map[fields[-1]])

@@ -14,7 +14,7 @@ train:
 dataset:
   type: MMIMDBDataModule
   params:
-    data_dir: ../data/output/
+    data_dir: ../data/mm_imdb
     batch_size: 32
     num_workers: -1
     max_seq_len: &max_seq_len 160
