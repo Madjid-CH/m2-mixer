@@ -1,5 +1,5 @@
 from os import path
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 
 import numpy as np
 import torch
@@ -7,7 +7,7 @@ import wandb
 from omegaconf import DictConfig
 from torch import nn
 from torch.nn import BCEWithLogitsLoss
-from torchmetrics import F1Score
+from torchmetrics import F1Score, Metric
 
 import modules
 from modules.train_test_module import AbstractTrainTestModule
@@ -29,6 +29,7 @@ class MMIMDBMixerMultiLoss(AbstractTrainTestModule):
         self.freeze_modalities_on_epoch = model_cfg.get('freeze_modalities_on_epoch', None)
         self.random_modality_muting_on_freeze = model_cfg.get('random_modality_muting_on_freeze', False)
         self.muting_probs = model_cfg.get('muting_probs', None)
+        self.scheduler_patience = optimizer_cfg.pop('scheduler_patience', 3)
         image_config = model_cfg.modalities.image
         text_config = model_cfg.modalities.text
         multimodal_config = model_cfg.modalities.multimodal
@@ -45,7 +46,7 @@ class MMIMDBMixerMultiLoss(AbstractTrainTestModule):
                                                model_cfg.modalities.classification.num_classes)
         self.classifier_fusion = modules.get_classifier_by_name(**model_cfg.modalities.classification)
 
-        pos_weight = torch.tensor(model_cfg.pos_weight)
+        pos_weight = torch.tensor(model_cfg.get(pos_weight, None))
         self.image_criterion = BCEWithLogitsLoss(pos_weight=pos_weight)
         self.text_criterion = BCEWithLogitsLoss(pos_weight=pos_weight)
         self.fusion_criterion = BCEWithLogitsLoss(pos_weight=pos_weight)
@@ -189,7 +190,7 @@ class MMIMDBMixerMultiLoss(AbstractTrainTestModule):
     def setup_criterion(self) -> torch.nn.Module:
         return None
 
-    def setup_scores(self) -> List[torch.nn.Module]:
+    def setup_scores(self) -> list[dict[str, Metric] | dict[str, Metric] | dict[str, Metric]]:
         train_scores = dict(f1w=F1Score(task="multilabel", num_labels=23, average='weighted'),
                             f1m=F1Score(task="multilabel", num_labels=23, average='macro'))
         val_scores = dict(f1w=F1Score(task="multilabel", num_labels=23, average='weighted'),
@@ -235,3 +236,14 @@ class MMIMDBMixerMultiLoss(AbstractTrainTestModule):
         for param in self.parameters():
             if param.dim() > 1:
                 nn.init.xavier_uniform_(param)
+
+    def configure_optimizers(self):
+        optimizer_cfg = self.optimizer_cfg
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), **optimizer_cfg)
+        scheduler = ReduceLROnPlateau(optimizer, patience=self.scheduler_patience, verbose=True)
+
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": scheduler,
+            "monitor": "val_loss",
+        }
