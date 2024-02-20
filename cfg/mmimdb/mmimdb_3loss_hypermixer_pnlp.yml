@@ -51,7 +51,7 @@ model:
     image:
       block_type: HyperMixer
       in_channels: 3
-      hidden_dim: 512
+      hidden_dim: 256
       patch_size: 16
       image_size: [160, 256]
       channel_dim: 3072
