@@ -5,7 +5,6 @@ import sys
 import os
 import numpy as np
 import h5py
-import pickle
 
 sys.path.append(os.path.dirname(os.path.dirname(os.getcwd())))
 

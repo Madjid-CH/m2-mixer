@@ -35,8 +35,9 @@ def hyper_mixer_block():
     hidden_dim = 512
     num_patch = 16
     channel_dim = 2048
+    num_heads = 2
     dropout = 0.1
-    return HyperMixerBlock(hidden_dim, num_patch, channel_dim, dropout)
+    return HyperMixerBlock(hidden_dim, num_patch, channel_dim, num_heads, dropout)
 
 
 def test_forward(hyper_mixer_block):
@@ -54,9 +55,12 @@ def test_hyper_mixer():
     image_size = (32, 32)
     num_mixers = 2
     channel_dim = 32
+    num_heads = 2
     dropout = 0.1
 
-    hyper_mixer = HyperMixer(in_channels, hidden_dim, patch_size, image_size, num_mixers, channel_dim, dropout)
+    hyper_mixer = HyperMixer(in_channels, hidden_dim, patch_size,
+                             image_size, num_mixers, channel_dim, num_heads,
+                             dropout)
     batch_size = 10
     images = torch.rand(batch_size, in_channels, image_size[0], image_size[1])
     output = hyper_mixer(images)
