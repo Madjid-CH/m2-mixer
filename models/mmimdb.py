@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import wandb
 from omegaconf import DictConfig
+from pytorch_lightning.cli import ReduceLROnPlateau
 from torch import nn
 from torch.nn import BCEWithLogitsLoss
 from torchmetrics import F1Score, Metric
@@ -46,10 +47,10 @@ class MMIMDBMixerMultiLoss(AbstractTrainTestModule):
                                                model_cfg.modalities.classification.num_classes)
         self.classifier_fusion = modules.get_classifier_by_name(**model_cfg.modalities.classification)
 
-        pos_weight = torch.tensor(model_cfg.get(pos_weight, None))
-        self.image_criterion = BCEWithLogitsLoss(pos_weight=pos_weight)
-        self.text_criterion = BCEWithLogitsLoss(pos_weight=pos_weight)
-        self.fusion_criterion = BCEWithLogitsLoss(pos_weight=pos_weight)
+        # pos_weight = torch.tensor(model_cfg.get(pos_weight, None))
+        self.image_criterion = BCEWithLogitsLoss()
+        self.text_criterion = BCEWithLogitsLoss()
+        self.fusion_criterion = BCEWithLogitsLoss()
 
         self.use_softadapt = model_cfg.get('use_softadapt', False)
         if self.use_softadapt:
