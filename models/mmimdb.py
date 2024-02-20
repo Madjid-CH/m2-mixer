@@ -241,7 +241,7 @@ class MMIMDBMixerMultiLoss(AbstractTrainTestModule):
     def configure_optimizers(self):
         optimizer_cfg = self.optimizer_cfg
         optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), **optimizer_cfg)
-        scheduler = ReduceLROnPlateau(optimizer, patience=self.scheduler_patience, verbose=True)
+        scheduler = ReduceLROnPlateau(optimizer, 'min', patience=self.scheduler_patience, verbose=True)
 
         return {
             "optimizer": optimizer,
