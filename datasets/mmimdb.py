@@ -112,6 +112,7 @@ class MMIMDBDataset(Dataset):
         self.len_data = _get_data_len(stage)
 
         self.transform = transform
+
         self.stage = stage
         self.tokenizer = tokenizer
         self.projection = projection
@@ -179,3 +180,4 @@ class MMIMDBDataset(Dataset):
         labels = h5_file['genres'][:]
         texts = h5_file['sequences'][:]
         return images, texts, labels
+
