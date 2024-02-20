@@ -17,6 +17,7 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
     parser.add_argument('-n', '--name', type=str)
     parser.add_argument('-p', '--ckpt', type=str)
     parser.add_argument('-m', '--mode', type=str, default='train')
+    parser.add_argument('-p', '--project', type=str, default='M2Mixer')
 
     parser.add_argument('--disable-wandb', action='store_true', default=False)
     args, unknown = parser.parse_known_args()
@@ -40,9 +41,9 @@ if __name__ == '__main__':
         deep_update(dataset_cfg, ucfg.dataset)
 
     if args.disable_wandb:
-        wandb.init(project='MMixer', name=args.name, config=todict(cfg), mode='disabled')
+        wandb.init(project=args.project, name=args.name, config=todict(cfg), mode='disabled')
     else:
-        wandb.init(project='MMixer', name=args.name, config=todict(cfg))
+        wandb.init(project=args.project, name=args.name, config=todict(cfg))
 
     model = models.get_model(model_cfg.type)
     if args.ckpt:
