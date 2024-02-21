@@ -1,0 +1,55 @@
+program: run.py
+method: bayes
+name: MMImdbMixer search
+metric:
+  goal: minimize
+  name: val_loss
+parameters:
+  optimizer:
+        parameters:
+          scheduler_patience:
+            max: 6
+            min: 2
+            distribution: int_uniform
+          eps:
+            max: 2e-8
+            min: 5e-9
+            distribution: uniform
+          lr:
+            max: 0.02
+            min: 0.00025
+            distribution: uniform
+  model:
+    parameters:
+      modalities:
+        parameters:
+          image:
+            parameters:
+              num_mixers:
+                values: [4, 8, 16]
+              hidden_dim:
+                values: [ 128, 256, 512 ]
+          text:
+            parameters:
+              num_mixers:
+                values: [4, 8, 16]
+              hidden_dim:
+                values:  [ 128, 256, 512 ]
+
+          multimodal:
+            parameters:
+              num_mixers:
+                values: [2, 4, 8, 16]
+              hidden_dim:
+                values:  [ 128, 256, 512]
+
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - "-c"
+  - "cfg/mmimdb/mmimdb_3loss_hypermixer_pnlp.yml"
+  - "-n"
+  - "[HS:] MM IMDB Mixer search - hypermixer pnlp"
+  - ${args}
