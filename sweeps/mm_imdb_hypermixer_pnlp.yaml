@@ -6,19 +6,11 @@ metric:
   name: val_loss
 parameters:
   optimizer:
-        parameters:
-          scheduler_patience:
-            max: 6
-            min: 2
-            distribution: int_uniform
-          eps:
-            max: 2e-8
-            min: 5e-9
-            distribution: uniform
-          lr:
-            max: 0.02
-            min: 0.00025
-            distribution: uniform
+    parameters:
+      scheduler_patience:
+        values: [2, 4]
+      lr:
+        values: [1e-2, 1e-3]
   model:
     parameters:
       modalities:

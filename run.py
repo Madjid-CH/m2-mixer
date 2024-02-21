@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
     trainer = pl.Trainer(
         callbacks=[
-            pl.callbacks.EarlyStopping(monitor='val_loss', patience=30, mode='min'),
+            pl.callbacks.EarlyStopping(monitor='val_loss', patience=10, mode='min'),
             pl.callbacks.ModelCheckpoint(
                 monitor=train_cfg.monitor,
                 save_last=True,

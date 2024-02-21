@@ -14,7 +14,7 @@ from modules.mixer import FeedForward
 
 class HyperMixer(nn.Module):
     def __init__(self, in_channels, hidden_dim, patch_size, image_size, num_mixers, channel_dim, num_heads=2,
-                 dropout=0., **kwargs):
+                 dropout=0., **_kwargs):
         super().__init__()
 
         assert (image_size[0] % patch_size == 0) and (

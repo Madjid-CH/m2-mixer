@@ -133,7 +133,7 @@ class FusionMixer(nn.Module):
 
 class MLPMixer(nn.Module):
     def __init__(self, in_channels, hidden_dim, patch_size, image_size, num_mixers, token_dim, channel_dim,
-                 dropout=0., **kwargs):
+                 dropout=0., **_kwargs):
         super().__init__()
 
         assert (image_size[0] % patch_size == 0) and (
