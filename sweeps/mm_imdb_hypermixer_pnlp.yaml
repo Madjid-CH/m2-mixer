@@ -41,7 +41,7 @@ command:
   - ${interpreter}
   - ${program}
   - "-c"
-  - "cfg/mmimdb/mmimdb_3loss_hypermixer_pnlp.yml"
+  - "cfg/mmimdb/hypermixer_pnlp_no_weights_low_dropout.yml"
   - "-n"
   - "[HS:] MM IMDB Mixer search - hypermixer pnlp"
   - ${args}
