@@ -1,6 +1,6 @@
 program: run.py
 method: bayes
-name: hypermixer pnlp search
+name: mlpmixer pnlp search
 metric:
   goal: minimize
   name: val_loss
@@ -41,7 +41,7 @@ command:
   - ${interpreter}
   - ${program}
   - "-c"
-  - "cfg/mmimdb/hypermixer_pnlp_no_weights_low_dropout.yml"
+  - "cfg/mmimdb/mmimdb_3loss_no_weights_low_dropout.yml"
   - "-n"
-  - "[HS:] MM IMDB Mixer search - hypermixer pnlp"
+  - "[HS:] MM IMDB Mixer search - mlpmixer pnlp"
   - ${args}
