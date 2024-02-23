@@ -151,7 +151,7 @@ class MMIMDBDataset(Dataset):
         return sample
 
     def _get_image_from_dataset(self, idx):
-        return self.images[idx].transpose(1, 2, 0).astype(np.uint8)
+        return self.images[idx].transpose(1, 2, 0).astype(np.uint8) / 255.0
 
     def project_features(self, words: List[str]) -> np.ndarray:
         encoded = self.tokenizer.encode(words, is_pretokenized=True, add_special_tokens=False)
