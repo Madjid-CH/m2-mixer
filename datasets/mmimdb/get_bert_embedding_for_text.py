@@ -3,8 +3,8 @@ import numpy as np
 import torch
 from transformers import BertTokenizer, BertModel
 
-DATASET_PATH = '../../../data/mm_imdb/multimodal_imdb.hdf5'
-METADATA_PATH = "../../../data/mm_imdb/metadata.npy"
+DATASET_PATH = '../../data/mm_imdb/multimodal_imdb.hdf5'
+METADATA_PATH = "../../data/mm_imdb/metadata.npy"
 METADATA = np.load(METADATA_PATH, allow_pickle=True).item()
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
