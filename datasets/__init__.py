@@ -2,10 +2,10 @@ import sys
 
 from .avmnist import *
 from .pnlp import *
-from .get_processed_mmimdb import *
+from datasets.mmimdb.get_processed_mmimdb import *
 from .mmimdb import *
 from .multioff import *
-from .get_processed_mmimdb import *
+from datasets.mmimdb.get_processed_mmimdb import *
 from .mmhs150 import *
 from .mimic import *
 
