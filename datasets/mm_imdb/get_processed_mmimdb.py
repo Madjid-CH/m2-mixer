@@ -231,7 +231,7 @@ if __name__ == '__main__':
     def parse_args():
         parser = argparse.ArgumentParser(description='Modality optimization.')
         parser.add_argument('--datadir', type=str, help='data directory',
-                            default='/mnt/scratch/xiaoxiang/yihang/mmimdb/')
+                            default='/mnt/scratch/xiaoxiang/yihang/mm_imdb/')
         parser.add_argument('--small_dataset', action='store_true', default=False, help='dataset scale')
         parser.add_argument('--average_text', action='store_true', default=False, help='averaging text features')
         return parser.parse_args("")

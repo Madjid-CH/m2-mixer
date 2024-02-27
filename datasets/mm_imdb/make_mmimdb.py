@@ -57,7 +57,7 @@ def resize_and_crop_image(input_file, output_box=(224, 224), fit=True):
 
 # logging.basicConfig(level=logging.INFO)
 # logger = logging.getLogger(__name__)
-mmimdb_path = '../data/mm_imdb_orig/mmimdb'
+mmimdb_path = '../data/mm_imdb_orig/mm_imdb'
 
 with open(os.path.join(mmimdb_path, 'list.txt'), 'r') as f:
     files = f.read().splitlines()
