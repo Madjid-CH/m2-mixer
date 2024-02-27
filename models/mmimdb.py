@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from os import path
 from typing import Any, Optional
 
@@ -7,10 +8,11 @@ import wandb
 from omegaconf import DictConfig
 from pytorch_lightning.cli import ReduceLROnPlateau
 from torch import nn
-from torch.nn import BCEWithLogitsLoss
-from torchmetrics import F1Score, Metric
+from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss
+from torchmetrics import F1Score, Metric, Accuracy, Precision, Recall
 
 import modules
+from modules import MLPMixer
 from modules.train_test_module import AbstractTrainTestModule
 
 try:
@@ -248,3 +250,84 @@ class MMIMDBMixerMultiLoss(AbstractTrainTestModule):
             "lr_scheduler": scheduler,
             "monitor": "val_loss",
         }
+
+
+class AbstractMMImdbMixer(AbstractTrainTestModule, ABC):
+    def __init__(self, optimizer_cfg: DictConfig, **kwargs):
+        super(AbstractMMImdbMixer, self).__init__(optimizer_cfg, **kwargs)
+        self.optimizer_cfg = optimizer_cfg
+        self.model = None
+        self.classifier = None
+
+    def shared_step(self, batch, **kwargs):
+        image = batch['image']
+        labels = batch['label']
+        image_logits = self.model(image)
+        image_logits = image_logits.reshape(image_logits.shape[0], -1, image_logits.shape[-1])
+        image_logits = self.classifier(image_logits.mean(dim=1))
+        loss = self.criterion(image_logits, labels.float())
+        preds = torch.sigmoid(image_logits) > 0.5
+        preds = preds.long()
+        return {
+            'preds': preds,
+            'labels': labels,
+            'loss': loss,
+            'logits': image_logits
+        }
+
+    @abstractmethod
+    def get_logits(self, batch):
+        raise NotImplementedError
+
+    def setup_criterion(self) -> torch.nn.Module:
+        return CrossEntropyLoss()
+
+    def setup_scores(self) -> list[dict[str, Metric] | dict[str, Metric] | dict[str, Metric]]:
+        train_scores = dict(acc=Accuracy(task="multiclass", num_classes=10),
+                            f1m=F1Score(task="multiclass", num_classes=10, average='macro'),
+                            prec_m=Precision(task="multiclass", num_classes=10, average='macro'),
+                            rec_m=Recall(task="multiclass", num_classes=10, average='macro'),
+                            f1mi=F1Score(task="multiclass", num_classes=10, average='micro'),
+                            prec_mi=Precision(task="multiclass", num_classes=10, average='micro'),
+                            rec_mi=Recall(task="multiclass", num_classes=10, average='micro'))
+        val_scores = dict(acc=Accuracy(task="multiclass", num_classes=10),
+                          f1m=F1Score(task="multiclass", num_classes=10, average='macro'),
+                          prec_m=Precision(task="multiclass", num_classes=10, average='macro'),
+                          rec_m=Recall(task="multiclass", num_classes=10, average='macro'),
+                          f1mi=F1Score(task="multiclass", num_classes=10, average='micro'),
+                          prec_mi=Precision(task="multiclass", num_classes=10, average='micro'),
+                          rec_mi=Recall(task="multiclass", num_classes=10, average='micro'))
+        test_scores = dict(acc=Accuracy(task="multiclass", num_classes=10),
+                           f1m=F1Score(task="multiclass", num_classes=10, average='macro'),
+                           prec_m=Precision(task="multiclass", num_classes=10, average='macro'),
+                           rec_m=Recall(task="multiclass", num_classes=10, average='macro'),
+                           f1mi=F1Score(task="multiclass", num_classes=10, average='micro'),
+                           prec_mi=Precision(task="multiclass", num_classes=10, average='micro'),
+                           rec_mi=Recall(task="multiclass", num_classes=10, average='micro'))
+
+        return [train_scores, val_scores, test_scores]
+
+    def configure_optimizers(self):
+        optimizer_cfg = self.optimizer_cfg
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.parameters()), **optimizer_cfg)
+        scheduler = ReduceLROnPlateau(optimizer, patience=5, verbose=True, monitor='val_loss')
+
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": scheduler,
+            "monitor": "val_loss",
+        }
+
+
+class MMImdbImageMixer(AbstractMMImdbMixer):
+    def __init__(self, model_cfg: DictConfig, optimizer_cfg: DictConfig, **kwargs):
+        super(AbstractMMImdbMixer, self).__init__(optimizer_cfg, **kwargs)
+        self.model = MLPMixer(**model_cfg.modalities.image, dropout=model_cfg.dropout)
+        self.classifier = torch.nn.Linear(model_cfg.modalities.image.hidden_dim,
+                                          model_cfg.modalities.classification.num_classes)
+
+    def get_logits(self, batch):
+        image = batch['image']
+        logits = self.model(image)
+        logits = self.classifier(logits)
+        return logits

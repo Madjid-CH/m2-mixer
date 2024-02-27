@@ -33,6 +33,30 @@ def _split_offset(stage):
         return 18160
 
 
+def _sample_data_len(stage):
+    if stage == 'train':
+        return 8
+    elif stage == 'test':
+        return 1
+    elif stage == 'dev':
+        return 1
+
+
+def _sample_split_offset(stage):
+    if stage == 'train':
+        return 0
+    elif stage == 'dev':
+        return 8
+    else:
+        return 9
+
+
+DATASET_FILE = "multimodal_imdb.hdf5"
+# DATASET_FILE = "sample_file.h5"
+# _get_data_len = _sample_data_len
+# _split_offset = _sample_split_offset
+
+
 class MMIMDBDataset(Dataset):
 
     def __init__(self, root_dir, tokenizer, projection, max_seq_len, feat_dim=100, stage='train', transform=None):
@@ -113,7 +137,7 @@ class MMIMDBDataset(Dataset):
         return ' '.join([lookup[word] for word in sequence])
 
     def _setup_data(self):
-        h5_file = h5py.File(f"{self.root_dir}/multimodal_imdb.hdf5", 'r')
+        h5_file = h5py.File(f"{self.root_dir}/{DATASET_FILE}", 'r')
         images = h5_file['images'][:]
         labels = h5_file['genres'][:]
         texts = h5_file['sequences'][:]

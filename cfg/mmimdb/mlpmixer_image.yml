@@ -1,0 +1,49 @@
+train:
+  tensorboard_path: ./logs/
+  log_interval_steps: 10
+  epochs: 300
+  optimizer:
+    lr: 5e-4
+    betas: [0.9, 0.999]
+    eps: 1e-8
+  seed: 42
+  monitor: val_loss
+  monitor_mode: min
+
+dataset:
+  type: MMIMDBDataModule
+  params:
+    data_dir: ../data/mm_imdb
+    batch_size: 32
+    num_workers: -1
+    max_seq_len: 160
+
+    projection:
+      num_hashes: 64
+      feature_size: 1024
+      window_size: 1
+
+    vocab:
+      tokenizer_type: wordpiece
+      tokenizer:
+        vocab: ./wordpiece/mbert_vocab.txt
+        lowercase: false
+        strip_accents: false
+        clean_text: false
+      vocab_path: vocab.npy
+
+
+model:
+  type: MMImdbImageMixer
+  dropout: 0.5
+  modalities:
+    classification:
+      num_classes: 23
+    image:
+      in_channels: 3
+      hidden_dim: 256
+      patch_size: 16
+      image_size: [160, 256]
+      token_dim: 32
+      channel_dim: 3072
+      num_mixers: 4
