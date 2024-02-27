@@ -17,20 +17,20 @@ from utils.projection import Projection
 
 def _get_data_len(stage):
     if stage == 'train':
-        return 80
+        return 15552
     elif stage == 'test':
-        return 20
+        return 7799
     elif stage == 'dev':
-        return 10
+        return 2608
 
 
 def _split_offset(stage):
     if stage == 'train':
         return 0
     elif stage == 'dev':
-        return 80
+        return 15552
     else:
-        return 90
+        return 18160
 
 
 class MMIMDBDataset(Dataset):
@@ -45,7 +45,7 @@ class MMIMDBDataset(Dataset):
 
         super().__init__()
         self.root_dir = root_dir
-        self.images, self.features, self.labels = self._setup_data()
+        self.images, self.text_sequences, self.labels = self._setup_data()
 
         self.len_data = _get_data_len(stage)
 
@@ -66,7 +66,7 @@ class MMIMDBDataset(Dataset):
         idx += _split_offset(self.stage)
         image = Image.fromarray(self._get_image_from_dataset(idx)).convert('RGB')
         label = self.labels[idx]
-        text = self.generate_text_from_sequence(self.features[idx])
+        text = self.generate_text_from_sequence(self.text_sequences[idx])
 
         text_length = text.count(' ') + 1
 
@@ -113,7 +113,7 @@ class MMIMDBDataset(Dataset):
         return ' '.join([lookup[word] for word in sequence])
 
     def _setup_data(self):
-        h5_file = h5py.File(f"{self.root_dir}/sample_file.h5", 'r')
+        h5_file = h5py.File(f"{self.root_dir}/multimodal_imdb.hdf5", 'r')
         images = h5_file['images'][:]
         labels = h5_file['genres'][:]
         texts = h5_file['sequences'][:]
@@ -167,13 +167,13 @@ class MMIMDBDatasetWithFeatures(MMIMDBDataset):
 class MMIMDBDataModule(pl.LightningDataModule):
 
     def __init__(self, data_dir: str, batch_size: int, num_workers: int, vocab: DictConfig, projection: DictConfig,
-                 max_seq_len: int, mmimdb_dataset="mmimdbdataset", **kwargs):
+                 max_seq_len: int, dataset_cls_name="MMIMDBDataset", **kwargs):
         super().__init__(**kwargs)
         self.padded_features = None
         self.train_set = None
         self.eval_set = None
         self.test_set = None
-        self.mmimdb_dataset = getattr(sys.modules[__name__], mmimdb_dataset)
+        self.mmimdb_dataset = getattr(sys.modules[__name__], dataset_cls_name)
         self.max_seq_len = max_seq_len
         self.data_dir = data_dir
         self.batch_size = batch_size
