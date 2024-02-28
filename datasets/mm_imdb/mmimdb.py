@@ -5,6 +5,7 @@ from typing import List
 import h5py
 import numpy as np
 import pytorch_lightning as pl
+import torch
 import torchvision.transforms as T
 from PIL import Image
 from omegaconf import DictConfig
@@ -51,10 +52,10 @@ def _sample_split_offset(stage):
         return 9
 
 
-DATASET_FILE = "multimodal_imdb.hdf5"
-# DATASET_FILE = "sample_file.h5"
-# _get_data_len = _sample_data_len
-# _split_offset = _sample_split_offset
+# DATASET_FILE = "multimodal_imdb.hdf5"
+DATASET_FILE = "sample_file.h5"
+_get_data_len = _sample_data_len
+_split_offset = _sample_split_offset
 
 
 class MMIMDBDataset(Dataset):
@@ -144,23 +145,23 @@ class MMIMDBDataset(Dataset):
         return images, texts, labels
 
 
-class MMIMDBDatasetWithFeatures(MMIMDBDataset):
-    def __init__(self, root_dir, _tokenizer, _projection, _max_seq_len, _feat_dim=100, stage='train', transform=None):
+class MMIMDBDatasetWithEmbeddings(Dataset):
+    def __init__(self, root_dir, stage='train', transform=None, **_kwargs):
         super().__init__()
         self.root_dir = root_dir
-        self.images, self.features, self.labels = self._setup_data()
+        self.stage = stage
+        self.images, self.embeddings, self.labels = self._setup_data()
         self.len_data = _get_data_len(stage)
         self.transform = transform
-        self.stage = stage
 
     def _setup_data(self):
-        h5_file = h5py.File(f"{self.root_dir}/sample_file.h5", 'r')
+        h5_file = h5py.File(f"{self.root_dir}/{DATASET_FILE}", 'r')
         begin = _split_offset(self.stage)
         end = begin + _get_data_len(self.stage)
         images = h5_file['images'][begin:end]
         labels = h5_file['genres'][begin:end]
-        features = h5_file['features'][begin:end]
-        return images, features, labels
+        embeddings = np.array(h5_file['embeddings'][begin:end].astype(np.float32))
+        return images, embeddings, labels
 
     def __len__(self):
         return self.len_data
@@ -168,20 +169,19 @@ class MMIMDBDatasetWithFeatures(MMIMDBDataset):
     def __getitem__(self, idx: int) -> dict:
         image = Image.fromarray(self._get_image_from_dataset(idx)).convert('RGB')
         label = self.labels[idx]
-        features = self.features[idx]
-        sample = {'image': image, 'text': features, 'label': label}
+        embeddings = self.embeddings[idx]
+        sample = {'image': image, 'text': embeddings, 'label': label}
         if self.transform:
             sample = self._apply_transformation(sample)
         return sample
 
     def _apply_transformation(self, sample):
         for m in self.transform:
+            print(m)
             if m == 'image':
                 sample[m] = self.transform[m](sample[m])
             elif m == 'multimodal':
                 sample = self.transform[m](sample)
-            else:
-                sample[m] = self.transform[m](sample[m])
         return sample
 
     def _get_image_from_dataset(self, idx):
@@ -213,7 +213,7 @@ class MMIMDBDataModule(pl.LightningDataModule):
                 mean=[0.485, 0.456, 0.406],
                 std=[0.229, 0.224, 0.225]
             )]),
-            multimodal=T.RandomApply([RuinModality(p=0.3)], p=0.6))
+            )
 
         val_test_transforms = dict(image=T.Compose([
             T.ToTensor(),

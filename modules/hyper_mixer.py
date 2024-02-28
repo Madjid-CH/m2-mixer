@@ -17,8 +17,7 @@ class HyperMixer(nn.Module):
                  dropout=0., **_kwargs):
         super().__init__()
 
-        assert (image_size[0] % patch_size == 0) and (
-                image_size[1] % patch_size == 0), 'Image dimensions must be divisible by the patch size.'
+        _check_image_dimensions_divisible_by_patch_size(image_size, patch_size)
         self.num_patch = (image_size[0] // patch_size) * (image_size[1] // patch_size)
         self.to_patch_embedding = nn.Sequential(
             nn.Conv2d(in_channels, hidden_dim, patch_size, patch_size),
@@ -43,13 +42,18 @@ class HyperMixer(nn.Module):
         return x
 
 
+def _check_image_dimensions_divisible_by_patch_size(image_size, patch_size):
+    divisible = (image_size[0] % patch_size == 0) and (image_size[1] % patch_size == 0)
+    assert divisible, 'Image dimensions must be divisible by the patch size.'
+
+
 class HyperMixerBlock(nn.Module):
 
     def __init__(self, hidden_dim, num_patch, channel_dim, num_heads, dropout=0.):
         super().__init__()
 
         self.token_mix = nn.Sequential(
-            nn.LayerNorm(hidden_dim),
+            nn.LayerNorm(hidden_dim,),
             Rearrange('b n d -> b d n'),
             HyperMixing(num_patch, hypernet_size=hidden_dim, num_heads=num_heads),
             Rearrange('b d n -> b n d')
@@ -61,8 +65,8 @@ class HyperMixerBlock(nn.Module):
         )
 
     def forward(self, x):
-        x1 = x + self.token_mix(x)
-        return x + self.feature_mix(x1)
+        x1 = self.token_mix(x) + x
+        return self.feature_mix(x1) + x
 
 
 class HyperMixing(nn.Module):
@@ -383,4 +387,28 @@ class _PositionalEncoding(nn.Module):
         pe = self.pe[:, 1: seq_len + 1]
         pe = pe.expand_as(x)
         x = x + pe
+        return x
+
+
+class TextHyperMixer(nn.Module):
+    def __init__(self,
+                 hidden_dim,
+                 num_mixers,
+                 patch_size,
+                 channel_dim,
+                 num_heads=2,
+                 dropout=0.,
+                 **_kwargs):
+        super().__init__()
+        self.num_patch = patch_size
+        self.mixer_blocks = nn.ModuleList([])
+        for _ in range(num_mixers):
+            self.mixer_blocks.append(
+                HyperMixerBlock(hidden_dim, self.num_patch, channel_dim, num_heads, dropout=dropout))
+        self.layer_norm = nn.LayerNorm(hidden_dim)
+
+    def forward(self, x):
+        for mixer_block in self.mixer_blocks:
+            x = mixer_block(x)
+        x = self.layer_norm(x)
         return x

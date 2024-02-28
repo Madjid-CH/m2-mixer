@@ -21,7 +21,7 @@ except ModuleNotFoundError:
     print('Warning: Could not import softadapt. LossWeightedSoftAdapt will not be available.')
     LossWeightedSoftAdapt = None
 
-NUM_CLASSES = 23
+NUM_LABELS = 23
 
 
 class MMIMDBMixerMultiLoss(AbstractTrainTestModule):
@@ -273,31 +273,31 @@ class AbstractMMImdbMixer(AbstractTrainTestModule, ABC):
         return CrossEntropyLoss()
 
     def setup_scores(self) -> list[dict[str, Metric] | dict[str, Metric] | dict[str, Metric]]:
-        task = "multilabel"
-        train_scores = dict(acc=Accuracy(task=task, num_labels=NUM_CLASSES),
-                            f1m=F1Score(task=task, num_labels=NUM_CLASSES, average='macro'),
-                            prec_m=Precision(task=task, num_labels=NUM_CLASSES, average='macro'),
-                            rec_m=Recall(task=task, num_labels=NUM_CLASSES, average='macro'),
-                            f1mi=F1Score(task=task, num_labels=NUM_CLASSES, average='micro'),
-                            prec_mi=Precision(task=task, num_labels=NUM_CLASSES, average='micro'),
-                            rec_mi=Recall(task=task, num_labels=NUM_CLASSES, average='micro'),
-                            f1w=F1Score(task=task, num_labels=NUM_CLASSES, average='weighted'))
-        val_scores = dict(acc=Accuracy(task=task, num_labels=NUM_CLASSES),
-                          f1m=F1Score(task=task, num_labels=NUM_CLASSES, average='macro'),
-                          prec_m=Precision(task=task, num_labels=NUM_CLASSES, average='macro'),
-                          rec_m=Recall(task=task, num_labels=NUM_CLASSES, average='macro'),
-                          f1mi=F1Score(task=task, num_labels=NUM_CLASSES, average='micro'),
-                          prec_mi=Precision(task=task, num_labels=NUM_CLASSES, average='micro'),
-                          rec_mi=Recall(task=task, num_labels=NUM_CLASSES, average='micro'),
-                          f1w=F1Score(task=task, num_labels=NUM_CLASSES, average='weighted'))
-        test_scores = dict(acc=Accuracy(task=task, num_labels=NUM_CLASSES),
-                           f1m=F1Score(task=task, num_labels=NUM_CLASSES, average='macro'),
-                           prec_m=Precision(task=task, num_labels=NUM_CLASSES, average='macro'),
-                           rec_m=Recall(task=task, num_labels=NUM_CLASSES, average='macro'),
-                           f1mi=F1Score(task=task, num_labels=NUM_CLASSES, average='micro'),
-                           prec_mi=Precision(task=task, num_labels=NUM_CLASSES, average='micro'),
-                           rec_mi=Recall(task=task, num_labels=NUM_CLASSES, average='micro'),
-                           f1w=F1Score(task=task, num_labels=NUM_CLASSES, average='weighted'))
+        TASK = "multilabel"
+        train_scores = dict(acc=Accuracy(task=TASK, num_labels=NUM_LABELS),
+                            f1m=F1Score(task=TASK, num_labels=NUM_LABELS, average='macro'),
+                            prec_m=Precision(task=TASK, num_labels=NUM_LABELS, average='macro'),
+                            rec_m=Recall(task=TASK, num_labels=NUM_LABELS, average='macro'),
+                            f1mi=F1Score(task=TASK, num_labels=NUM_LABELS, average='micro'),
+                            prec_mi=Precision(task=TASK, num_labels=NUM_LABELS, average='micro'),
+                            rec_mi=Recall(task=TASK, num_labels=NUM_LABELS, average='micro'),
+                            f1w=F1Score(task=TASK, num_labels=NUM_LABELS, average='weighted'))
+        val_scores = dict(acc=Accuracy(task=TASK, num_labels=NUM_LABELS),
+                          f1m=F1Score(task=TASK, num_labels=NUM_LABELS, average='macro'),
+                          prec_m=Precision(task=TASK, num_labels=NUM_LABELS, average='macro'),
+                          rec_m=Recall(task=TASK, num_labels=NUM_LABELS, average='macro'),
+                          f1mi=F1Score(task=TASK, num_labels=NUM_LABELS, average='micro'),
+                          prec_mi=Precision(task=TASK, num_labels=NUM_LABELS, average='micro'),
+                          rec_mi=Recall(task=TASK, num_labels=NUM_LABELS, average='micro'),
+                          f1w=F1Score(task=TASK, num_labels=NUM_LABELS, average='weighted'))
+        test_scores = dict(acc=Accuracy(task=TASK, num_labels=NUM_LABELS),
+                           f1m=F1Score(task=TASK, num_labels=NUM_LABELS, average='macro'),
+                           prec_m=Precision(task=TASK, num_labels=NUM_LABELS, average='macro'),
+                           rec_m=Recall(task=TASK, num_labels=NUM_LABELS, average='macro'),
+                           f1mi=F1Score(task=TASK, num_labels=NUM_LABELS, average='micro'),
+                           prec_mi=Precision(task=TASK, num_labels=NUM_LABELS, average='micro'),
+                           rec_mi=Recall(task=TASK, num_labels=NUM_LABELS, average='micro'),
+                           f1w=F1Score(task=TASK, num_labels=NUM_LABELS, average='weighted'))
 
         return [train_scores, val_scores, test_scores]
 
