@@ -52,10 +52,10 @@ def _sample_split_offset(stage):
         return 9
 
 
-# DATASET_FILE = "multimodal_imdb.hdf5"
-DATASET_FILE = "sample_file.h5"
-_get_data_len = _sample_data_len
-_split_offset = _sample_split_offset
+DATASET_FILE = "multimodal_imdb.hdf5"
+# DATASET_FILE = "sample_file.h5"
+# _get_data_len = _sample_data_len
+# _split_offset = _sample_split_offset
 
 
 class MMIMDBDataset(Dataset):
