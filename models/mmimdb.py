@@ -12,7 +12,7 @@ from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss
 from torchmetrics import F1Score, Metric, Accuracy, Precision, Recall
 
 import modules
-from modules import MLPMixer
+from modules import MLPMixer, TextHyperMixer
 from modules.train_test_module import AbstractTrainTestModule
 
 try:
@@ -20,6 +20,8 @@ try:
 except ModuleNotFoundError:
     print('Warning: Could not import softadapt. LossWeightedSoftAdapt will not be available.')
     LossWeightedSoftAdapt = None
+
+NUM_CLASSES = 23
 
 
 class MMIMDBMixerMultiLoss(AbstractTrainTestModule):
@@ -259,21 +261,9 @@ class AbstractMMImdbMixer(AbstractTrainTestModule, ABC):
         self.model = None
         self.classifier = None
 
+    @abstractmethod
     def shared_step(self, batch, **kwargs):
-        image = batch['image']
-        labels = batch['label']
-        image_logits = self.model(image)
-        image_logits = image_logits.reshape(image_logits.shape[0], -1, image_logits.shape[-1])
-        image_logits = self.classifier(image_logits.mean(dim=1))
-        loss = self.criterion(image_logits, labels.float())
-        preds = torch.sigmoid(image_logits) > 0.5
-        preds = preds.long()
-        return {
-            'preds': preds,
-            'labels': labels,
-            'loss': loss,
-            'logits': image_logits
-        }
+        raise NotImplementedError
 
     @abstractmethod
     def get_logits(self, batch):
@@ -283,27 +273,31 @@ class AbstractMMImdbMixer(AbstractTrainTestModule, ABC):
         return CrossEntropyLoss()
 
     def setup_scores(self) -> list[dict[str, Metric] | dict[str, Metric] | dict[str, Metric]]:
-        train_scores = dict(acc=Accuracy(task="multiclass", num_classes=10),
-                            f1m=F1Score(task="multiclass", num_classes=10, average='macro'),
-                            prec_m=Precision(task="multiclass", num_classes=10, average='macro'),
-                            rec_m=Recall(task="multiclass", num_classes=10, average='macro'),
-                            f1mi=F1Score(task="multiclass", num_classes=10, average='micro'),
-                            prec_mi=Precision(task="multiclass", num_classes=10, average='micro'),
-                            rec_mi=Recall(task="multiclass", num_classes=10, average='micro'))
-        val_scores = dict(acc=Accuracy(task="multiclass", num_classes=10),
-                          f1m=F1Score(task="multiclass", num_classes=10, average='macro'),
-                          prec_m=Precision(task="multiclass", num_classes=10, average='macro'),
-                          rec_m=Recall(task="multiclass", num_classes=10, average='macro'),
-                          f1mi=F1Score(task="multiclass", num_classes=10, average='micro'),
-                          prec_mi=Precision(task="multiclass", num_classes=10, average='micro'),
-                          rec_mi=Recall(task="multiclass", num_classes=10, average='micro'))
-        test_scores = dict(acc=Accuracy(task="multiclass", num_classes=10),
-                           f1m=F1Score(task="multiclass", num_classes=10, average='macro'),
-                           prec_m=Precision(task="multiclass", num_classes=10, average='macro'),
-                           rec_m=Recall(task="multiclass", num_classes=10, average='macro'),
-                           f1mi=F1Score(task="multiclass", num_classes=10, average='micro'),
-                           prec_mi=Precision(task="multiclass", num_classes=10, average='micro'),
-                           rec_mi=Recall(task="multiclass", num_classes=10, average='micro'))
+        task = "multilabel"
+        train_scores = dict(acc=Accuracy(task=task, num_labels=NUM_CLASSES),
+                            f1m=F1Score(task=task, num_labels=NUM_CLASSES, average='macro'),
+                            prec_m=Precision(task=task, num_labels=NUM_CLASSES, average='macro'),
+                            rec_m=Recall(task=task, num_labels=NUM_CLASSES, average='macro'),
+                            f1mi=F1Score(task=task, num_labels=NUM_CLASSES, average='micro'),
+                            prec_mi=Precision(task=task, num_labels=NUM_CLASSES, average='micro'),
+                            rec_mi=Recall(task=task, num_labels=NUM_CLASSES, average='micro'),
+                            f1w=F1Score(task=task, num_labels=NUM_CLASSES, average='weighted'))
+        val_scores = dict(acc=Accuracy(task=task, num_labels=NUM_CLASSES),
+                          f1m=F1Score(task=task, num_labels=NUM_CLASSES, average='macro'),
+                          prec_m=Precision(task=task, num_labels=NUM_CLASSES, average='macro'),
+                          rec_m=Recall(task=task, num_labels=NUM_CLASSES, average='macro'),
+                          f1mi=F1Score(task=task, num_labels=NUM_CLASSES, average='micro'),
+                          prec_mi=Precision(task=task, num_labels=NUM_CLASSES, average='micro'),
+                          rec_mi=Recall(task=task, num_labels=NUM_CLASSES, average='micro'),
+                          f1w=F1Score(task=task, num_labels=NUM_CLASSES, average='weighted'))
+        test_scores = dict(acc=Accuracy(task=task, num_labels=NUM_CLASSES),
+                           f1m=F1Score(task=task, num_labels=NUM_CLASSES, average='macro'),
+                           prec_m=Precision(task=task, num_labels=NUM_CLASSES, average='macro'),
+                           rec_m=Recall(task=task, num_labels=NUM_CLASSES, average='macro'),
+                           f1mi=F1Score(task=task, num_labels=NUM_CLASSES, average='micro'),
+                           prec_mi=Precision(task=task, num_labels=NUM_CLASSES, average='micro'),
+                           rec_mi=Recall(task=task, num_labels=NUM_CLASSES, average='micro'),
+                           f1w=F1Score(task=task, num_labels=NUM_CLASSES, average='weighted'))
 
         return [train_scores, val_scores, test_scores]
 
@@ -326,8 +320,54 @@ class MMImdbImageMixer(AbstractMMImdbMixer):
         self.classifier = torch.nn.Linear(model_cfg.modalities.image.hidden_dim,
                                           model_cfg.modalities.classification.num_classes)
 
+    def shared_step(self, batch, **kwargs):
+        image = batch['image']
+        labels = batch['label']
+        image_logits = self.model(image)
+        image_logits = image_logits.reshape(image_logits.shape[0], -1, image_logits.shape[-1])
+        image_logits = self.classifier(image_logits.mean(dim=1))
+        loss = self.criterion(image_logits, labels.float())
+        preds = torch.sigmoid(image_logits) > 0.5
+        preds = preds.long()
+        return {
+            'preds': preds,
+            'labels': labels,
+            'loss': loss,
+            'logits': image_logits
+        }
+
     def get_logits(self, batch):
         image = batch['image']
         logits = self.model(image)
+        logits = self.classifier(logits)
+        return logits
+
+
+class MMImdbTextEmbeddingMixer(AbstractMMImdbMixer):
+    def __init__(self, model_cfg: DictConfig, optimizer_cfg: DictConfig, **kwargs):
+        super(AbstractMMImdbMixer, self).__init__(optimizer_cfg, **kwargs)
+        self.model = TextHyperMixer(**model_cfg.modalities.text, dropout=model_cfg.dropout)
+        self.classifier = torch.nn.Linear(model_cfg.modalities.text.hidden_dim,
+                                          model_cfg.modalities.classification.num_classes)
+
+    def shared_step(self, batch, **kwargs):
+        embeddings = batch['text']
+        labels = batch['label']
+        logits = self.model(embeddings)
+        logits = logits.reshape(logits.shape[0], -1, logits.shape[-1])
+        logits = self.classifier(logits.mean(dim=1))
+        loss = self.criterion(logits, labels.float())
+        preds = torch.sigmoid(logits) > 0.5
+        preds = preds.long()
+        return {
+            'preds': preds,
+            'labels': labels,
+            'loss': loss,
+            'logits': logits
+        }
+
+    def get_logits(self, batch):
+        embeddings = batch['text']
+        logits = self.model(embeddings)
         logits = self.classifier(logits)
         return logits
